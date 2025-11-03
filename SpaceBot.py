@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 
 
-WEBEX_HARDCODED_TOKEN = "ZDNjZGUyY2UtOGI4OS00ZmYwLWI4ZTgtZjA1NDc5ZTU0YjlkODIwZDZhYjAtMmYy_PE93_d68b3fe9-4c07-4dad-8882-3b3fd6afb92d"
+WEBEX_HARDCODED_TOKEN = "OTIzZTE0ZWEtMzJlMC00YTNmLWE3OGQtYTc0ZjFlMzA3M2NiMTBhNWI2ZmYtMjVl_PE93_d68b3fe9-4c07-4dad-8882-3b3fd6afb92d"
 GEOCODING_API_KEY = "a6a2ef6a1cfda8adbfbb4b4b30b0da1e"
 
 def get_webex_headers(token):
