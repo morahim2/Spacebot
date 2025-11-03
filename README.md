@@ -1,57 +1,82 @@
-# Spacebot
-The Space Bot monitors a Webex room for messages that begin with / followed by a number (e.g., /5) by integrating Webex Messaging, ISS Current Location, and Geocoding APIs.
-After waiting so many seconds, the bot asks the location of the ISS, transforms coordinates into a readable geographic location, and then posts the outcome back to the room.
-A. Webex Messaging API
-Field	Detail
-Base URL	https://webexapis.com/v1
-Authentication	Bearer Token
-Scopes	spark:rooms_read, spark:messages_read, spark:messages_write
-Key Endpoints	GET /rooms, GET /messages?roomId=<id>, POST /messages
-Docs	https://developer.webex.com/docs/api/v1/
-{
-  "roomId": "Y2lzY29zcGFyazovL3VzL1JPT00vMTIzNDU2Nzg",
-  "text": "Hello from Space Bot!"
-}
-B. ISS Current Location API
-Field	Detail
-Base URL	http://api.open-notify.org/iss-now.json
-Authentication	None
-Docs	http://api.open-notify.org/
-{
-  "timestamp": 1669999999,
-  "iss_position": {"latitude": "45.1234", "longitude": "-93.5678"},
-  "message": "success"
-}
-C. Geocoding API (OpenWeatherMap example)
-Field	Detail
-Base URL	https://api.openweathermap.org/geo/1.0/reverse
-Authentication	API Key (appid=YOUR_KEY)
-Docs	https://openweathermap.org/api/geocoding-api
-Example request:
-https://api.openweathermap.org/geo/1.0/reverse?lat=45.1234&lon=-93.5678&limit=1&appid=YOUR_KEY
+# Space Bot: Webex's ISS Tracker
 
-  
-"name": "Minneapolis",
-"state": "Minnesota",
-"country": "US"
+ ## Synopsis
+ A Webex bot built on Python, Space Bot tracks the International Space Station (ISS) in real time.  
+ In a Webex room, users can question the bot by sending messages in the type `/seconds`, where the number indicates how many seconds it will take for the bot to reply with the ISS's current location.  
 
-D. The Python Time Library
+ The bot incorporates: **ISS Current Location API** to obtain current ISS coordinates; **Webex Messaging API** to read and write messages in Webex rooms; and **Geocoding API (e.g., Mapbox, OpenWeatherMap, or LocationIQ)** to translate latitude and longitude into places that are readable by humans.  
 
- used to convert epoch timestamps and handle delays.
+ ## Features: Watches a Webex room for messages that begin with `/` and end with an integer.  
+ The ISS location is retrieved after a predetermined amount of seconds.  
+ - Uses a geocoding API to translate ISS latitude and longitude to city, state, and nation.  
+ Formatted ISS location messages are sent back to the Webex room; timestamps are converted to a date and time that can be read by humans.
+### Sample Results
+The ISS was passing over Butterfield Trl Imperial, CA, USA on Friday, February 18, 2022, at 14:09:02 (33.4190°, -115.1074°).
 
- import time
-timestamp = 1669999999
-print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp)))
+Copy code in Terminal
+## Setup Instructions
+### 1. Prerequisites
+- Python 3.x installed
+- `requests` library installed:
+```bash
+pip install request
+Set Up the Bot
 
-2. MVC and Web Architecture
-Component	Responsibility
-Model	Interacts with external APIs (Webex, ISS, Geocoding)
-View	Webex messages displayed to the user
-Controller	Logic interpreting /seconds commands, coordinating API calls
+Launch a text editor and open space_iss.py.
 
-Architecture: Client-Server
+Enter your Geocoding API key and Webex access token in the placeholders:
+MY WEBEX_HARDCODED_TOKEN = "ZDNjZGUyY2UtOGI4OS00ZmYwLWI4ZTgtZjA1NDc5ZTU0YjlkODIwZDZhYjAtMmYy_PE93_d68b3fe9-4c07-4dad-8882-3b3fd6afb92d"
+MY GEOCODING_API_KEY = "a6a2ef6a1cfda8adbfbb4b4b30b0da1e"
+Launch the Bot
 
-Client = Webex user
+ Open your terminal and navigate to the space_iss.py folder: cd path/to/your/folder
+Then run the script: python space_iss.py
+Observe the instructions:
 
-Server = Python bot (REST client)
+ Select if you want to utilise the hard-coded token (y/n).
 
+ Choose the Webex room to keep an eye on
+
+ To find the location of the ISS, send /seconds messages in the Webex chat.
+
+Code Organisation
+
+ The primary bot script is space_iss.py.
+
+ Among the functions are:
+
+ The ISS latitude, longitude, and timestamp are retrieved using the get_iss_location() function.
+
+ The function get_geocode(lat, lon) transforms coordinates into a location that can be read by humans.
+
+ Send a message to the Webex room using send_webex_message(room_id, message).
+
+ Program flow and room monitoring are handled by main().
+
+ Handling Errors
+
+ Try/except blocks are used to catch invalid API responses.
+
+ The handling of missing JSON fields is done with grace. obtain()
+
+ The bot is not crashed by invalid room names or messages.
+
+ Features that are optional
+
+ Integration with SpaceX API to display next launch information
+
+ Recording bot activity for troubleshooting
+
+ Config file support for tokens and API keys instead of hardcoding
+
+ References
+
+ Webex API Documentation
+
+ ISS Current Location API
+
+ Mapbox Geocoding API
+
+ Python time library documentation
+
+Mohammad Abdurahim.
