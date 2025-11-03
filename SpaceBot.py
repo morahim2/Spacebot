@@ -1,37 +1,43 @@
-... WEBEX_HARDCODED_TOKEN = "ZDNjZGUyY2UtOGI4OS00ZmYwLWI4ZTgtZjA1NDc5ZTU0YjlkODIwZDZhYjAtMmYy_PE93_d68b3fe9-4c07-4dad-8882-3b3fd6afb92d"
-... GEOCODING_API_KEY = "a6a2ef6a1cfda8adbfbb4b4b30b0da1e"  
-... 
-... 
-... 
-... def get_webex_headers(token):
-...     """Return Webex API headers."""
-...     return {"Authorization": f"Bearer {token}"}
-... 
-... def list_webex_rooms(headers):
-...     """Return a list of Webex rooms."""
-...     url = "https://webexapis.com/v1/rooms"
-...     response = requests.get(url, headers=headers)
-...     response.raise_for_status()
-...     rooms = response.json()["items"]
-...     print("\nList of rooms:")
-...     for room in rooms:
-...         print(f"Type: {room['type']}, Name: {room['title']}")
-...     return rooms
-... 
-... def find_room_id(rooms, room_name):
-...     """Find the room ID by name."""
-...     for room in rooms:
-...         if room_name.lower() in room['title'].lower():
-...             print(f"Found room: {room['title']}")
-...             return room['id']
-...     return None
-... 
-... def get_latest_message(room_id, headers):
+import requests
+import time
+from datetime import datetime
+
+
+WEBEX_HARDCODED_TOKEN = "ZDNjZGUyY2UtOGI4OS00ZmYwLWI4ZTgtZjA1NDc5ZTU0YjlkODIwZDZhYjAtMmYy_PE93_d68b3fe9-4c07-4dad-8882-3b3fd6afb92d"
+GEOCODING_API_KEY = "a6a2ef6a1cfda8adbfbb4b4b30b0da1e"
+
+def get_webex_headers(token):
+    """Return Webex API headers."""
+    return {"Authorization": f"Bearer {token}"}
+
+def list_webex_rooms(headers):
+    """Return a list of Webex rooms."""
+    url = "https://webexapis.com/v1/rooms"
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    rooms = response.json().get("items", [])
+    if not rooms:
+        print("No rooms found.")
+        return []
+    print("\nList of rooms:")
+    for room in rooms:
+        print(f"Type: {room['type']}, Name: {room['title']}")
+    return rooms
+
+def find_room_id(rooms, room_name):
+    """Find the room ID by name."""
+    for room in rooms:
+        if room_name.lower() in room['title'].lower():
+            print(f"Found room: {room['title']}")
+            return room['id']
+    return None
+
+def get_latest_message(room_id, headers):
     """Return the latest message text in a room."""
     url = f"https://webexapis.com/v1/messages?roomId={room_id}"
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    messages = response.json()["items"]
+    messages = response.json().get("items", [])
     if messages:
         return messages[-1]['text']
     return None
@@ -53,7 +59,7 @@ def get_geocode(lat, lon, api_key):
     response = requests.get(url)
     response.raise_for_status()
     location_info = response.json()
-    if location_info:
+    if location_info and isinstance(location_info, list):
         info = location_info[0]
         city = info.get('name', '')
         state = info.get('state', '')
@@ -68,9 +74,7 @@ def send_webex_message(room_id, headers, message):
     response = requests.post(url, headers=headers, json=data)
     response.raise_for_status()
 
-
 def main():
-    
     use_token = input("Do you wish to use the hard-coded Webex token? (y/n) ")
     if use_token.lower() != 'y':
         access_token = input("Enter your Webex access token: ")
@@ -79,9 +83,7 @@ def main():
 
     headers = get_webex_headers(access_token)
 
-
     rooms = list_webex_rooms(headers)
-
 
     room_name = input("\nWhich room should be monitored for /seconds messages? ")
     room_id = find_room_id(rooms, room_name)
@@ -102,23 +104,19 @@ def main():
 
                 if message.startswith("/"):
                     try:
-                        delay_seconds = int(message[1:])
+                        delay_seconds = int(message[1:].strip())  
                         print(f"Waiting {delay_seconds} seconds before checking ISS location...")
                         time.sleep(delay_seconds)
 
-                       
                         lat, lon, timestamp = get_iss_location()
 
-                      
                         city, state, country = get_geocode(lat, lon, GEOCODING_API_KEY)
 
-                       
                         response_message = (
                             f"On {timestamp}, the ISS was flying over "
                             f"{city}, {state}, {country} ({lat}°, {lon}°)"
                         )
 
-                        
                         send_webex_message(room_id, headers, response_message)
                         print("Sent message to Webex:", response_message)
                     except ValueError:
@@ -128,9 +126,12 @@ def main():
         except KeyboardInterrupt:
             print("\nExiting program...")
             break
+        except requests.exceptions.RequestException as e:
+            print("Error with Webex API request:", e)
+            time.sleep(5)  
         except Exception as e:
-            print("Error:", e)
-            time.sleep(5)
+            print("Unexpected error:", e)
+            time.sleep(5)  
 
 if __name__ == "__main__":
     main()
