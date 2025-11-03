@@ -2,8 +2,7 @@ import requests
 import time
 from datetime import datetime
 
-
-WEBEX_HARDCODED_TOKEN = "OTIzZTE0ZWEtMzJlMC00YTNmLWE3OGQtYTc0ZjFlMzA3M2NiMTBhNWI2ZmYtMjVl_PE93_d68b3fe9-4c07-4dad-8882-3b3fd6afb92d"
+WEBEX_HARDCODED_TOKEN = "ZWE4NzJlYjQtZGVjOC00ZTBhLWFmNzMtMGU0ZWUyODExNTFhODE4OWZkYTktMTIx_PE93_d68b3fe9-4c07-4dad-8882-3b3fd6afb92d"
 GEOCODING_API_KEY = "a6a2ef6a1cfda8adbfbb4b4b30b0da1e"
 
 def get_webex_headers(token):
@@ -34,7 +33,7 @@ def find_room_id(rooms, room_name):
 
 def get_latest_message(room_id, headers):
     """Return the latest message text in a room."""
-    url = f"https://webexapis.com/v1/messages?roomId={room_id}"
+    url = f"https://webexapis.com/v1/messages?roomId={room_id}&max=1"
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     messages = response.json().get("items", [])
@@ -61,11 +60,11 @@ def get_geocode(lat, lon, api_key):
     location_info = response.json()
     if location_info and isinstance(location_info, list):
         info = location_info[0]
-        city = info.get('name', '')
-        state = info.get('state', '')
-        country = info.get('country', '')
+        city = info.get('name', 'Unknown city')
+        state = info.get('state', 'Unknown state')
+        country = info.get('country', 'Unknown country')
         return city, state, country
-    return '', '', ''
+    return 'Unknown city', 'Unknown state', 'Unknown country'
 
 def send_webex_message(room_id, headers, message):
     """Send a message to the specified Webex room."""
@@ -73,8 +72,10 @@ def send_webex_message(room_id, headers, message):
     data = {"roomId": room_id, "text": message}
     response = requests.post(url, headers=headers, json=data)
     response.raise_for_status()
+    print("Sent message to Webex:", message)
 
 def main():
+   
     use_token = input("Do you wish to use the hard-coded Webex token? (y/n) ")
     if use_token.lower() != 'y':
         access_token = input("Enter your Webex access token: ")
@@ -83,15 +84,15 @@ def main():
 
     headers = get_webex_headers(access_token)
 
-    rooms = list_webex_rooms(headers)
 
+    rooms = list_webex_rooms(headers)
     room_name = input("\nWhich room should be monitored for /seconds messages? ")
     room_id = find_room_id(rooms, room_name)
     if not room_id:
         print("Room not found. Exiting...")
         return
 
-    print("\nMonitoring room for messages starting with '/<seconds>'...")
+    print("\nMonitoring room for messages starting with '/<seconds>'... Press Ctrl+C to exit.")
 
     last_message = None
 
@@ -104,12 +105,14 @@ def main():
 
                 if message.startswith("/"):
                     try:
-                        delay_seconds = int(message[1:].strip())  
+                        delay_seconds = int(message[1:].strip())
+                        if delay_seconds <= 0:
+                            print("Invalid number of seconds. Must be > 0")
+                            continue
                         print(f"Waiting {delay_seconds} seconds before checking ISS location...")
                         time.sleep(delay_seconds)
 
                         lat, lon, timestamp = get_iss_location()
-
                         city, state, country = get_geocode(lat, lon, GEOCODING_API_KEY)
 
                         response_message = (
@@ -118,9 +121,10 @@ def main():
                         )
 
                         send_webex_message(room_id, headers, response_message)
-                        print("Sent message to Webex:", response_message)
+
                     except ValueError:
                         print("Invalid format: please use /<number_of_seconds>")
+
             time.sleep(1)
 
         except KeyboardInterrupt:
@@ -128,10 +132,13 @@ def main():
             break
         except requests.exceptions.RequestException as e:
             print("Error with Webex API request:", e)
-            time.sleep(5)  
+            time.sleep(5)
         except Exception as e:
             print("Unexpected error:", e)
-            time.sleep(5)  
+            time.sleep(5)
 
 if __name__ == "__main__":
     main()
+
+  
+
